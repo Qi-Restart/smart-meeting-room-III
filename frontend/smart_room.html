@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第12章 智能会议室3D联动系统 - 最终前端</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --panel: rgba(15, 23, 42, 0.78);
+      --card: rgba(30, 41, 59, 0.78);
+      --border: rgba(148, 163, 184, 0.28);
+      --text: #f8fafc;
+      --sub: #cbd5e1;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --purple: #8b5cf6;
+      --teal: #14b8a6;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      background: #e6edf7;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+
+    #topBar {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.84);
+      border: 1px solid var(--border);
+      box-shadow: 0 16px 44px rgba(15, 23, 42, 0.28);
+      backdrop-filter: blur(14px);
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 14px;
+      color: #e5e7eb;
+      background: rgba(51, 65, 85, 0.88);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tab:hover { filter: brightness(1.12); }
+    .tab.activeA { background: linear-gradient(135deg, #2563eb, #60a5fa); }
+    .tab.activeB { background: linear-gradient(135deg, #6d28d9, #a78bfa); }
+    .tab.activeC { background: linear-gradient(135deg, #0f766e, #2dd4bf); }
+
+    .panel {
+      position: fixed;
+      top: 84px;
+      z-index: 25;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding: 14px;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.30);
+      backdrop-filter: blur(14px);
+    }
+
+    #leftPanel {
+      left: 16px;
+      width: 430px;
+    }
+
+    #rightPanel {
+      right: 16px;
+      width: 365px;
+    }
+
+    #chartPanel {
+      position: fixed;
+      left: 465px;
+      right: 395px;
+      bottom: 16px;
+      height: 230px;
+      z-index: 24;
+      padding: 12px 14px;
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+      backdrop-filter: blur(14px);
+    }
+
+    .hidden { display: none !important; }
+
+    .titleRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .desc {
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .section {
+      margin-top: 13px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(148, 163, 184, 0.24);
+    }
+
+    .sectionTitle {
+      margin-bottom: 8px;
+      color: #93c5fd;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .card {
+      min-height: 56px;
+      padding: 9px;
+      border-radius: 13px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: var(--card);
+    }
+
+    .card span {
+      display: block;
+      color: #94a3b8;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .card strong {
+      display: block;
+      color: white;
+      font-size: 15px;
+      line-height: 1.35;
+      word-break: break-all;
+    }
+
+    .wide { grid-column: span 2; }
+
+    input, select, button {
+      font-family: inherit;
+    }
+
+    input[type="text"], input[type="number"], input[type="range"], select {
+      width: 100%;
+      margin: 4px 0 8px;
+    }
+
+    input[type="text"], input[type="number"], select {
+      padding: 9px 10px;
+      border-radius: 11px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #fff;
+      background: rgba(15, 23, 42, 0.88);
+      outline: none;
+    }
+
+    input[type="range"] {
+      accent-color: #60a5fa;
+    }
+
+    button {
+      border: 0;
+      border-radius: 11px;
+      padding: 8px 11px;
+      margin: 4px 4px 2px 0;
+      color: white;
+      background: #2563eb;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:hover { filter: brightness(1.12); }
+    button.green { background: #16a34a; }
+    button.red { background: #dc2626; }
+    button.gray { background: #475569; }
+    button.yellow { background: #d97706; }
+    button.purple { background: #7c3aed; }
+    button.teal { background: #0f766e; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: white;
+      background: #64748b;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .ok { background: #16a34a; }
+    .warn { background: #d97706; }
+    .bad { background: #dc2626; }
+
+    .sliderLabel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #cbd5e1;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    #historyChart {
+      width: 100% !important;
+      height: 172px !important;
+    }
+
+    @media (max-width: 1260px) {
+      #rightPanel { display: none; }
+      #chartPanel { left: 465px; right: 16px; }
+    }
+
+    @media (max-width: 920px) {
+      #leftPanel { width: 350px; }
+      #chartPanel { left: 16px; right: 16px; height: 210px; }
+      #topBar { left: 16px; right: 16px; transform: none; overflow-x: auto; }
+    }
+  
+    /* 大窗口摄像头弹层 */
+    #cameraModal {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, 0.78);
+      backdrop-filter: blur(10px);
+    }
+
+    #cameraModalContent {
+      width: min(1040px, 88vw);
+      aspect-ratio: 4 / 3;
+      max-height: 88vh;
+      border-radius: 22px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #cameraModalHeader {
+      height: 56px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      font-weight: 900;
+    }
+
+    #cameraModalView {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #cameraModalImg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+
+    .cameraHint {
+      margin-top: 8px;
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="cameraModal">
+    <div id="cameraModalContent">
+      <div id="cameraModalHeader">
+        <span>树莓派摄像头实时画面</span>
+        <div>
+          <button class="gray" onclick="toggleCameraFit()">铺满/完整</button>
+          <button class="gray" onclick="openCameraInNewTab()">新标签打开</button>
+          <button class="red" onclick="closeCameraPopup()">关闭</button>
+        </div>
+      </div>
+      <div id="cameraModalView"><img id="cameraModalImg" src="" alt="Camera Stream" /></div>
+    </div>
+  </div>
+
+  <div id="topBar">
+    <button id="tab-room-a" class="tab" onclick="switchRoom('room_a')">Room A 标准会议室</button>
+    <button id="tab-room-b" class="tab" onclick="switchRoom('room_b')">Room B 培训会议室</button>
+    <button id="tab-room-c" class="tab" onclick="switchRoom('room_c')">Room C 小型洽谈室</button>
+    <button class="tab" onclick="togglePanels()">隐藏/显示面板</button>
+    <button class="tab" onclick="toggleChart()">历史图表</button>
+  </div>
+
+  <div id="leftPanel" class="panel">
+    <div class="titleRow">
+      <span>智能会议室控制台</span>
+      <span id="connBadge" class="badge">未连接</span>
+    </div>
+    <div class="desc">当前页面每次只显示一个会议室。传感器自动联动仍然保留，同时新增手动调节灯光、投影仪和空调。</div>
+
+    <div class="section">
+      <div class="sectionTitle">服务器连接</div>
+      <input id="wsUrl" type="text" value="ws://192.168.1.228:8775" />
+      <button onclick="connectWS()">连接服务器</button>
+      <button class="gray" onclick="disconnectWS()">断开</button>
+    </div>
+
+    <div class="section">
+      <div class="sectionTitle">会议室界面</div>
+      <div class="grid">
+        <div class="card wide"><span id="roomTitle">Room A 标准会议室</span><strong id="roomState">--</strong></div>
+        <div class="card wide"><span>场景特点</span><strong id="roomDesc">--</strong></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sectionTitle">手动调节当前会议室</div>
+
+      <div class="sliderLabel"><span>灯光亮度</span><b id="manualLightValue">70%</b></div>
+      <input id="manualLight" type="range" min="0" max="100" value="70" oninput="manualSetLight(this.value)" />
+      <button onclick="manualSetLight(document.getElementById('manualLight').value)">应用灯光</button>
+      <button class="gray" onclick="autoLight()">恢复传感器灯光</button>
+
+      <div class="sliderLabel"><span>投影仪亮度</span><b id="manualProjectorValue">0%</b></div>
+      <input id="manualProjector" type="range" min="0" max="100" value="0" oninput="manualSetProjector(this.value)" />
+      <button onclick="manualSetProjector(document.getElementById('manualProjector').value)">应用投影</button>
+      <button class="gray" onclick="autoProjector()">关闭投影</button>
+
+      <div class="sliderLabel"><span>空调温度</span><b id="manualTempValue">24℃</b></div>
+      <input id="manualTemp" type="range" min="16" max="30" value="24" oninput="manualSetAcTemp(this.value)" />
+
+      <select id="manualAcMode" onchange="manualSetAcMode(this.value)">
+        <option value="cool">制冷</option>
+        <option value="heat">制热</option>
+        <option value="dry">除湿</option>
+        <option value="fan">送风</option>
+      </select>
+
+      <div class="sliderLabel"><span>风速</span><b id="manualFanValue">2档</b></div>
+      <input id="manualFan" type="range" min="1" max="3" value="2" oninput="manualSetFan(this.value)" />
+
+      <button class="green" onclick="manualAcOn()">空调开</button>
+      <button class="red" onclick="manualAcOff()">空调关</button>
+      <button class="gray" onclick="autoAc()">恢复传感器空调</button>
+    </div>
+
+    <div class="section">
+      <div class="sectionTitle">人脸门禁与摄像头</div>
+      <div style="margin-top:10px; padding:10px; border-radius:14px; background:rgba(15,23,42,0.45); border:1px solid rgba(148,163,184,0.22);">
+        <div class="sectionTitle" style="margin-bottom:6px;">摄像头画面</div>
+        <div class="desc">录入和识别时在这里看树莓派摄像头；检测到人脸会显示绿色框。</div>
+        <input id="cameraUrl" type="text" value="http://192.168.1.228:8081/video_feed" />
+        <button class="green" onclick="startCameraView()">弹出摄像头大窗口</button>
+        <button class="gray" onclick="stopCameraView()">隐藏摄像头</button>
+        <div class="cameraHint">
+          点击“弹出摄像头大窗口”会在当前页面上方打开一个大尺寸摄像头界面，不再挤在左侧面板里。
+        </div>
+      </div>
+      </div>
+
+      <input id="faceName" type="text" placeholder="输入姓名，例如 yuanqi" />
+      <button class="green" onclick="enrollFace()">录入人脸</button>
+      <button onclick="startFaceRecognition()">开启识别</button>
+      <button class="gray" onclick="stopFaceRecognition()">停止识别</button>
+      <button class="red" onclick="openDoorManually()">手动开门</button>
+
+      <div class="grid" style="margin-top:8px;">
+        <div class="card wide"><span>人脸状态</span><strong id="faceMessage">待机</strong></div>
+        <div class="card"><span>录入进度</span><strong id="faceProgress">0%</strong></div>
+        <div class="card"><span>识别姓名</span><strong id="facePerson">--</strong></div>
+        <div class="card"><span>置信度</span><strong id="faceConfidence">--</strong></div>
+        <div class="card"><span>门禁结果</span><strong id="faceAccess">--</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rightPanel" class="panel">
+    <div class="titleRow">
+      <span>实时传感器数据</span>
+      <span id="dataTime" class="badge">--</span>
+    </div>
+
+    <div class="grid">
+      <div class="card"><span>温度</span><strong id="temperature">-- ℃</strong></div>
+      <div class="card"><span>湿度</span><strong id="humidity">-- %</strong></div>
+      <div class="card"><span>光照</span><strong id="light">--</strong></div>
+      <div class="card"><span>烟雾</span><strong id="smoke">--</strong></div>
+      <div class="card"><span>人体红外</span><strong id="presence">--</strong></div>
+      <div class="card"><span>无人时长</span><strong id="noPresence">-- s</strong></div>
+      <div class="card"><span>距离</span><strong id="distance">-- cm</strong></div>
+      <div class="card"><span>门状态</span><strong id="door">--</strong></div>
+      <div class="card"><span>空调</span><strong id="acStatus">--</strong></div>
+      <div class="card"><span>报警</span><strong id="alarmStatus">--</strong></div>
+    </div>
+
+    <div class="section">
+      <div class="sectionTitle">手动状态</div>
+      <div class="grid">
+        <div class="card"><span>灯光控制</span><strong id="lightControlState">自动</strong></div>
+        <div class="card"><span>投影控制</span><strong id="projectorControlState">关闭</strong></div>
+        <div class="card"><span>空调控制</span><strong id="acControlState">自动</strong></div>
+        <div class="card"><span>当前房间</span><strong id="activeRoomName">--</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chartPanel">
+    <div class="titleRow" style="margin-bottom:4px;">
+      <span>历史数据图表：温度 / 湿度 / 光照 / 烟雾</span>
+      <button class="gray" onclick="toggleChart()">收起</button>
+    </div>
+    <canvas id="historyChart"></canvas>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    let socket = null;
+    let latestData = null;
+    let activeRoom = "room_a";
+    let panelsVisible = true;
+    let historyChart = null;
+
+    const roomObjects = {};
+    const roomNames = {
+      room_a: "Room A 标准会议室",
+      room_b: "Room B 培训会议室",
+      room_c: "Room C 小型洽谈室"
+    };
+    const roomDescriptions = {
+      room_a: "木质长桌、环绕办公椅、白板与投影幕布，适合正式会议。",
+      room_b: "讲台、投影幕布、课桌式排布和更多座位，适合培训演示。",
+      room_c: "圆桌、沙发、绿植和暖色灯光，适合小组洽谈和轻量讨论。"
+    };
+
+    const manual = {
+      room_a: { light: null, projector: 0, ac: null, temp: 24, mode: "cool", fan: 2 },
+      room_b: { light: null, projector: 0, ac: null, temp: 24, mode: "cool", fan: 2 },
+      room_c: { light: null, projector: 0, ac: null, temp: 24, mode: "cool", fan: 2 }
+    };
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe7eef7);
+
+    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(5.8, 4.2, 6.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.12;
+    controls.target.set(0, 1.3, 0);
+    controls.minDistance = 3.5;
+    controls.maxDistance = 12;
+    controls.maxPolarAngle = Math.PI / 2.04;
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.48);
+    scene.add(ambient);
+
+    const sun = new THREE.DirectionalLight(0xffffff, 0.58);
+    sun.position.set(5, 8, 6);
+    sun.castShadow = true;
+    scene.add(sun);
+
+    const mat = {
+      floorA: new THREE.MeshStandardMaterial({ color: 0xb8b2a5, roughness: 0.85 }),
+      floorB: new THREE.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.82 }),
+      floorC: new THREE.MeshStandardMaterial({ color: 0xd6c3a5, roughness: 0.78 }),
+      wallA: new THREE.MeshStandardMaterial({ color: 0xf4f1eb, roughness: 0.72 }),
+      wallB: new THREE.MeshStandardMaterial({ color: 0xe9e5ff, roughness: 0.72 }),
+      wallC: new THREE.MeshStandardMaterial({ color: 0xecfdf5, roughness: 0.72 }),
+      wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.48 }),
+      darkWood: new THREE.MeshStandardMaterial({ color: 0x4b2e16, roughness: 0.5 }),
+      chairA: new THREE.MeshStandardMaterial({ color: 0x243047, roughness: 0.68 }),
+      chairB: new THREE.MeshStandardMaterial({ color: 0x5b21b6, roughness: 0.68 }),
+      sofa: new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.7 }),
+      metal: new THREE.MeshStandardMaterial({ color: 0xa8b3c1, roughness: 0.3, metalness: 0.55 }),
+      door: new THREE.MeshStandardMaterial({ color: 0x7c4218, roughness: 0.5 }),
+      white: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45 }),
+      glass: new THREE.MeshStandardMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.32, roughness: 0.08 }),
+      black: new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.45 }),
+      red: new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 }),
+      green: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.4 }),
+      blue: new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4 }),
+      purple: new THREE.MeshStandardMaterial({ color: 0x7c3aed, roughness: 0.4 }),
+      teal: new THREE.MeshStandardMaterial({ color: 0x14b8a6, roughness: 0.4 }),
+      yellow: new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 }),
+      warm: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 }),
+      off: new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 }),
+      beam: new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }),
+      screenGlow: new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0 })
+    };
+
+    function addBox(parent, w, h, d, material, x, y, z) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function addCylinder(parent, r1, r2, h, material, x, y, z, segments = 32) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, segments), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function createTextLabel(parent, text, color) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 220;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 12;
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 66px Microsoft YaHei, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.78), material);
+      plane.position.set(0, 3.18, -3.24);
+      parent.add(plane);
+    }
+
+    function createBaseRoom(id, wallMat, floorMat, title, labelColor) {
+      const group = new THREE.Group();
+      scene.add(group);
+
+      addBox(group, 6.4, 0.08, 7.0, floorMat, 0, 0, 0);
+      addBox(group, 6.4, 3.1, 0.12, wallMat, 0, 1.55, -3.5);
+      addBox(group, 0.12, 3.1, 7.0, wallMat, -3.2, 1.55, 0);
+      addBox(group, 0.12, 3.1, 7.0, wallMat, 3.2, 1.55, 0);
+
+      const frontMat = wallMat.clone();
+      frontMat.transparent = true;
+      frontMat.opacity = 0.24;
+      addBox(group, 6.4, 3.1, 0.08, frontMat, 0, 1.55, 3.5);
+
+      const ceilMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
+      addBox(group, 6.4, 0.08, 7.0, ceilMat, 0, 3.1, 0);
+
+      const doorPivot = new THREE.Group();
+      doorPivot.position.set(-0.7, 0, 3.56);
+      group.add(doorPivot);
+      addBox(doorPivot, 1.08, 2.05, 0.08, mat.door, 0.54, 1.03, 0);
+
+      addBox(group, 0.07, 1.05, 1.45, mat.glass, -3.28, 1.65, -0.8);
+      addBox(group, 0.07, 1.05, 1.45, mat.glass, 3.28, 1.65, -0.8);
+
+      const light1 = new THREE.PointLight(0xfff4d6, 0.55, 6.2, 1.5);
+      light1.position.set(-1.25, 2.85, 0.5);
+      group.add(light1);
+      const light2 = new THREE.PointLight(0xfff4d6, 0.55, 6.2, 1.5);
+      light2.position.set(1.25, 2.85, 0.5);
+      group.add(light2);
+      const lamp1 = addBox(group, 0.62, 0.05, 0.62, mat.yellow, -1.25, 2.98, 0.5);
+      const lamp2 = addBox(group, 0.62, 0.05, 0.62, mat.yellow, 1.25, 2.98, 0.5);
+
+      const ac = addBox(group, 1.08, 0.32, 0.28, mat.white, 1.8, 2.55, -3.30);
+      const acLight = addBox(group, 0.27, 0.07, 0.03, mat.off, 2.03, 2.55, -3.14);
+      const acVent = addBox(group, 0.8, 0.04, 0.04, mat.off, 1.8, 2.38, -3.12);
+
+      const alarmLight = new THREE.PointLight(0xff0000, 0, 5, 1.5);
+      alarmLight.position.set(0, 2.55, 2.3);
+      group.add(alarmLight);
+      const alarmBall = new THREE.Mesh(new THREE.SphereGeometry(0.15, 18, 18), mat.off);
+      alarmBall.position.set(0, 2.55, 2.3);
+      group.add(alarmBall);
+
+      const faceIndicator = new THREE.Mesh(new THREE.SphereGeometry(0.15, 18, 18), mat.off);
+      faceIndicator.position.set(-1.68, 1.55, 3.36);
+      group.add(faceIndicator);
+
+      const projector = addBox(group, 0.6, 0.22, 0.42, mat.black, 0, 2.6, 1.2);
+      const beam = new THREE.Mesh(new THREE.ConeGeometry(1.25, 3.4, 48, 1, true), mat.beam.clone());
+      beam.rotation.x = Math.PI / 2;
+      beam.position.set(0, 2.05, -0.35);
+      beam.visible = false;
+      group.add(beam);
+
+      const projectorLight = new THREE.SpotLight(0x93c5fd, 0, 7, Math.PI / 8, 0.5, 1.6);
+      projectorLight.position.set(0, 2.45, 0.9);
+      projectorLight.target.position.set(0, 1.65, -3.3);
+      group.add(projectorLight);
+      group.add(projectorLight.target);
+
+      createTextLabel(group, title, labelColor);
+
+      roomObjects[id] = {
+        group, doorPivot, lights: [light1, light2], lamps: [lamp1, lamp2],
+        ac, acLight, acVent, alarmLight, alarmBall, faceIndicator,
+        projector, beam, projectorLight, screen: null, screenGlow: null
+      };
+
+      return group;
+    }
+
+    function createScreenGlow(parent, id, x, y, z, w, h) {
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat.screenGlow.clone());
+      glow.position.set(x, y, z);
+      parent.add(glow);
+      roomObjects[id].screenGlow = glow;
+    }
+
+    function createOfficeChair(parent, x, z, rotY, material) {
+      const group = new THREE.Group();
+      addBox(group, 0.52, 0.14, 0.52, material, 0, 0.58, 0);
+      addBox(group, 0.52, 0.68, 0.12, material, 0, 0.98, -0.28);
+      addBox(group, 0.08, 0.52, 0.08, mat.metal, 0, 0.30, 0);
+      addCylinder(group, 0.24, 0.30, 0.07, mat.metal, 0, 0.09, 0, 24);
+      group.position.set(x, 0, z);
+      group.rotation.y = rotY;
+      parent.add(group);
+    }
+
+    function createSofa(parent, x, z, rotY) {
+      const group = new THREE.Group();
+      addBox(group, 1.45, 0.24, 0.62, mat.sofa, 0, 0.46, 0);
+      addBox(group, 1.5, 0.7, 0.2, mat.sofa, 0, 0.83, -0.34);
+      addBox(group, 0.2, 0.48, 0.62, mat.sofa, -0.82, 0.65, 0);
+      addBox(group, 0.2, 0.48, 0.62, mat.sofa, 0.82, 0.65, 0);
+      group.position.set(x, 0, z);
+      group.rotation.y = rotY;
+      parent.add(group);
+    }
+
+    function createPlant(parent, x, z) {
+      const group = new THREE.Group();
+      addCylinder(group, 0.2, 0.15, 0.34, mat.darkWood, 0, 0.17, 0, 24);
+      for (let i = 0; i < 8; i++) {
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), mat.green);
+        leaf.scale.set(1, 0.35, 0.55);
+        const a = i / 8 * Math.PI * 2;
+        leaf.position.set(Math.cos(a) * 0.25, 0.65 + Math.sin(i) * 0.05, Math.sin(a) * 0.25);
+        leaf.rotation.y = a;
+        group.add(leaf);
+      }
+      group.position.set(x, 0, z);
+      parent.add(group);
+    }
+
+    function createRoomA() {
+      const g = createBaseRoom("room_a", mat.wallA, mat.floorA, "Room A 标准会议室", "#60a5fa");
+      addBox(g, 3.45, 0.18, 1.45, mat.wood, 0, 0.78, 0);
+      for (const x of [-1.35, 1.35]) {
+        for (const z of [-0.55, 0.55]) addBox(g, 0.14, 0.74, 0.14, mat.darkWood, x, 0.37, z);
+      }
+      for (const x of [-1.35, -0.45, 0.45, 1.35]) {
+        createOfficeChair(g, x, 1.25, Math.PI, mat.chairA);
+        createOfficeChair(g, x, -1.25, 0, mat.chairA);
+      }
+      addBox(g, 1.9, 0.95, 0.06, mat.white, -1.05, 1.68, -3.39);
+      roomObjects.room_a.screen = addBox(g, 1.7, 0.95, 0.06, mat.blue, 1.1, 1.7, -3.38);
+      createScreenGlow(g, "room_a", 1.1, 1.7, -3.34, 1.55, 0.8);
+    }
+
+    function createRoomB() {
+      const g = createBaseRoom("room_b", mat.wallB, mat.floorB, "Room B 培训会议室", "#a78bfa");
+      addBox(g, 2.55, 0.2, 0.8, mat.darkWood, 0, 0.78, -2.12);
+      addBox(g, 0.62, 1.08, 0.45, mat.darkWood, 0, 0.54, -2.38);
+      roomObjects.room_b.screen = addBox(g, 2.75, 1.28, 0.06, mat.purple, 0, 1.83, -3.38);
+      createScreenGlow(g, "room_b", 0, 1.83, -3.34, 2.5, 1.08);
+      for (let row = 0; row < 3; row++) {
+        const z = -0.7 + row * 0.95;
+        addBox(g, 4.15, 0.13, 0.45, mat.wood, 0, 0.65, z);
+        for (const x of [-1.65, -0.55, 0.55, 1.65]) createOfficeChair(g, x, z + 0.55, Math.PI, mat.chairB);
+      }
+    }
+
+    function createRoomC() {
+      const g = createBaseRoom("room_c", mat.wallC, mat.floorC, "Room C 小型洽谈室", "#2dd4bf");
+      addCylinder(g, 0.9, 0.9, 0.15, mat.wood, 0, 0.65, 0, 48);
+      addCylinder(g, 0.14, 0.18, 0.65, mat.darkWood, 0, 0.33, 0, 24);
+      createSofa(g, -1.45, 0.1, Math.PI / 2);
+      createSofa(g, 1.45, 0.1, -Math.PI / 2);
+      createOfficeChair(g, 0, 1.45, Math.PI, mat.sofa);
+      addBox(g, 1.6, 0.8, 0.06, mat.white, -0.7, 1.65, -3.39);
+      roomObjects.room_c.screen = addBox(g, 1.05, 0.72, 0.06, mat.teal, 1.35, 1.62, -3.38);
+      createScreenGlow(g, "room_c", 1.35, 1.62, -3.34, 0.9, 0.58);
+      createPlant(g, -2.35, -2.45);
+      createPlant(g, 2.35, 2.25);
+      const warmLight = new THREE.PointLight(0xffb35c, 0.55, 4, 1.4);
+      warmLight.position.set(-1.9, 2.25, 1.9);
+      g.add(warmLight);
+      roomObjects.room_c.lights.push(warmLight);
+    }
+
+    createRoomA();
+    createRoomB();
+    createRoomC();
+
+    function switchRoom(roomId) {
+      activeRoom = roomId;
+      for (const id of Object.keys(roomObjects)) roomObjects[id].group.visible = id === roomId;
+
+      document.getElementById("tab-room-a").className = "tab" + (roomId === "room_a" ? " activeA" : "");
+      document.getElementById("tab-room-b").className = "tab" + (roomId === "room_b" ? " activeB" : "");
+      document.getElementById("tab-room-c").className = "tab" + (roomId === "room_c" ? " activeC" : "");
+
+      document.getElementById("roomTitle").textContent = roomNames[roomId];
+      document.getElementById("roomDesc").textContent = roomDescriptions[roomId];
+      document.getElementById("activeRoomName").textContent = roomNames[roomId];
+
+      syncManualControlsToPanel();
+
+      camera.position.set(5.8, 4.2, 6.8);
+      controls.target.set(0, 1.3, 0);
+      controls.update();
+
+      if (latestData) {
+        updateCurrentRoomText(latestData);
+        updateAllRoomModels(latestData);
+      }
+    }
+
+    // WebSocket
+    function setBadge(text, cls) {
+      const badge = document.getElementById("connBadge");
+      badge.textContent = text;
+      badge.className = "badge " + (cls || "");
+    }
+
+    function connectWS() {
+      const url = document.getElementById("wsUrl").value.trim();
+      if (!url) return alert("请输入 WebSocket 地址");
+      if (socket) socket.close();
+
+      setBadge("连接中", "warn");
+      socket = new WebSocket(url);
+
+      socket.onopen = () => setBadge("已连接", "ok");
+      socket.onclose = () => setBadge("已断开", "bad");
+      socket.onerror = () => setBadge("连接错误", "bad");
+
+      socket.onmessage = (event) => {
+        const payload = JSON.parse(event.data);
+        if (payload.current) {
+          latestData = payload.current;
+          updateDashboard(payload.current);
+          updateAllRoomModels(payload.current);
+        }
+        if (payload.history) updateChart(payload.history);
+      };
+    }
+
+    function disconnectWS() {
+      if (socket) socket.close();
+      socket = null;
+      setBadge("已断开", "bad");
+    }
+
+    function sendCommand(cmd) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert("WebSocket 还没连接，先点“连接服务器”");
+        return;
+      }
+      socket.send(JSON.stringify(cmd));
+    }
+
+    function enrollFace() {
+      const name = document.getElementById("faceName").value.trim();
+      if (!name) return alert("先输入姓名，比如 yuanqi");
+      sendCommand({ type: "enroll_face", name, samples: 30 });
+    }
+    function startFaceRecognition() { sendCommand({ type: "start_face_recognition" }); }
+    function stopFaceRecognition() { sendCommand({ type: "stop_face_recognition" }); }
+    function openDoorManually() { sendCommand({ type: "open_door" }); }
+
+    // Manual controls
+    function syncManualControlsToPanel() {
+      const m = manual[activeRoom];
+      document.getElementById("manualLight").value = m.light === null ? 70 : m.light;
+      document.getElementById("manualLightValue").textContent = (m.light === null ? "自动" : m.light + "%");
+      document.getElementById("manualProjector").value = m.projector;
+      document.getElementById("manualProjectorValue").textContent = m.projector + "%";
+      document.getElementById("manualTemp").value = m.temp;
+      document.getElementById("manualTempValue").textContent = m.temp + "℃";
+      document.getElementById("manualAcMode").value = m.mode;
+      document.getElementById("manualFan").value = m.fan;
+      document.getElementById("manualFanValue").textContent = m.fan + "档";
+      updateManualStatusText();
+    }
+
+    function manualSetLight(value) {
+      const v = Number(value);
+      manual[activeRoom].light = v;
+      document.getElementById("manualLightValue").textContent = v + "%";
+      updateAllRoomModels(latestData || fakeData());
+      updateManualStatusText();
+    }
+
+    function autoLight() {
+      manual[activeRoom].light = null;
+      syncManualControlsToPanel();
+      updateAllRoomModels(latestData || fakeData());
+    }
+
+    function manualSetProjector(value) {
+      const v = Number(value);
+      manual[activeRoom].projector = v;
+      document.getElementById("manualProjectorValue").textContent = v + "%";
+      updateAllRoomModels(latestData || fakeData());
+      updateManualStatusText();
+    }
+
+    function autoProjector() {
+      manual[activeRoom].projector = 0;
+      syncManualControlsToPanel();
+      updateAllRoomModels(latestData || fakeData());
+    }
+
+    function manualAcOn() {
+      manual[activeRoom].ac = true;
+      updateAllRoomModels(latestData || fakeData());
+      updateManualStatusText();
+    }
+
+    function manualAcOff() {
+      manual[activeRoom].ac = false;
+      updateAllRoomModels(latestData || fakeData());
+      updateManualStatusText();
+    }
+
+    function autoAc() {
+      manual[activeRoom].ac = null;
+      updateAllRoomModels(latestData || fakeData());
+      updateManualStatusText();
+    }
+
+    function manualSetAcTemp(value) {
+      manual[activeRoom].temp = Number(value);
+      document.getElementById("manualTempValue").textContent = value + "℃";
+      updateManualStatusText();
+    }
+
+    function manualSetAcMode(value) {
+      manual[activeRoom].mode = value;
+      updateManualStatusText();
+    }
+
+    function manualSetFan(value) {
+      manual[activeRoom].fan = Number(value);
+      document.getElementById("manualFanValue").textContent = value + "档";
+      updateManualStatusText();
+    }
+
+    function updateManualStatusText() {
+      const m = manual[activeRoom];
+      document.getElementById("lightControlState").textContent = m.light === null ? "自动" : m.light + "%";
+      document.getElementById("projectorControlState").textContent = m.projector > 0 ? m.projector + "%" : "关闭";
+      const modeText = { cool: "制冷", heat: "制热", dry: "除湿", fan: "送风" }[m.mode];
+      document.getElementById("acControlState").textContent = m.ac === null ? "自动" : ((m.ac ? "开启" : "关闭") + " / " + modeText + " / " + m.temp + "℃ / " + m.fan + "档");
+    }
+
+    function fakeData() {
+      return {
+        rooms: {
+          room_a: { ac: false, light: true, alarm: false, door: "closed", face_access: false, mode: "normal" },
+          room_b: { ac: false, light: true, alarm: false, door: "closed", face_access: false, mode: "presentation" },
+          room_c: { ac: false, light: true, alarm: false, door: "closed", face_access: false, mode: "private" }
+        }
+      };
+    }
+
+    // Dashboard
+    function updateDashboard(data) {
+      document.getElementById("dataTime").textContent = data.timestamp ? data.timestamp.split(" ")[1] : "--";
+      document.getElementById("temperature").textContent = data.temperature + " ℃";
+      document.getElementById("humidity").textContent = data.humidity + " %";
+      document.getElementById("light").textContent = data.light;
+      document.getElementById("smoke").textContent = data.smoke;
+      document.getElementById("presence").textContent = data.presence ? "有人" : "无人";
+      document.getElementById("noPresence").textContent = (data.no_presence_duration || 0) + " s";
+      document.getElementById("distance").textContent = data.distance + " cm";
+      document.getElementById("door").textContent = data.door === "open" ? "开启" : "关闭";
+      document.getElementById("acStatus").textContent = data.device_status.ac_on ? "开启" : "关闭";
+      document.getElementById("alarmStatus").textContent = data.device_status.alarm_on ? "报警" : "安全";
+
+      const face = data.face || {};
+      document.getElementById("faceMessage").textContent = face.message || "--";
+      document.getElementById("faceProgress").textContent = (face.enroll_progress || 0) + "%";
+      document.getElementById("facePerson").textContent = face.name || "--";
+      document.getElementById("faceConfidence").textContent = face.confidence == null ? "--" : face.confidence;
+      document.getElementById("faceAccess").textContent = data.device_status.face_access ? "门禁通过" : "未通过";
+
+      updateCurrentRoomText(data);
+      updateManualStatusText();
+    }
+
+    function updateCurrentRoomText(data) {
+      const state = data.rooms[activeRoom];
+      if (!state) return;
+      const m = manual[activeRoom];
+
+      const lightText = m.light === null ? (state.light ? "灯光开" : "灯光关") : "手动灯光 " + m.light + "%";
+      const projectorText = m.projector > 0 ? "投影 " + m.projector + "%" : "投影关";
+      const acText = m.ac === null ? (state.ac ? "空调开" : "空调关") : (m.ac ? "手动空调开" : "手动空调关");
+
+      const text = [
+        acText,
+        lightText,
+        projectorText,
+        state.alarm ? "报警" : "安全",
+        state.door === "open" ? "门开" : "门关",
+        state.face_access ? "人脸通过" : "人脸待机",
+        state.mode
+      ].join(" / ");
+      document.getElementById("roomState").textContent = text;
+    }
+
+    function updateAllRoomModels(data) {
+      if (!data || !data.rooms) return;
+      updateRoomModel("room_a", data.rooms.room_a);
+      updateRoomModel("room_b", data.rooms.room_b);
+      updateRoomModel("room_c", data.rooms.room_c);
+    }
+
+    function updateRoomModel(id, state) {
+      const obj = roomObjects[id];
+      if (!obj || !state) return;
+      const m = manual[id];
+
+      obj.doorPivot.rotation.y = state.door === "open" ? -Math.PI / 2.25 : 0;
+
+      const lightPercent = m.light === null ? (state.light ? 85 : 12) : m.light;
+      const intensity = lightPercent / 100;
+      obj.lights.forEach(l => l.intensity = intensity * 1.05);
+      obj.lamps.forEach(lamp => lamp.material = lightPercent > 25 ? mat.yellow : mat.off);
+
+      const acOn = m.ac === null ? state.ac : m.ac;
+      obj.acLight.material = acOn ? mat.green : mat.off;
+      obj.acVent.material = acOn ? mat.blue : mat.off;
+
+      const alarmIntensity = state.alarm ? (Math.sin(Date.now() * 0.012) + 1.4) * 0.9 : 0;
+      obj.alarmLight.intensity = alarmIntensity;
+      obj.alarmBall.material = state.alarm ? mat.red : mat.off;
+
+      obj.faceIndicator.material = state.face_access ? mat.green : mat.off;
+
+      const p = m.projector / 100;
+      obj.beam.visible = p > 0.02;
+      obj.beam.material.opacity = p * 0.20;
+      obj.projectorLight.intensity = p * 2.3;
+      if (obj.screenGlow) obj.screenGlow.material.opacity = p * 0.45;
+
+      if (obj.screen) {
+        if (m.projector > 0) obj.screen.material = id === "room_b" ? mat.purple : id === "room_c" ? mat.teal : mat.blue;
+        else if (state.mode === "energy_saving" || state.mode === "standby") obj.screen.material = mat.off;
+        else if (id === "room_a") obj.screen.material = mat.blue;
+        else if (id === "room_b") obj.screen.material = mat.purple;
+        else obj.screen.material = mat.teal;
+      }
+    }
+
+    // Camera popup in frontend
+    function getCameraUrl() {
+      const input = document.getElementById("cameraUrl");
+      return input ? input.value.trim() : "http://192.168.1.228:8081/video_feed";
+    }
+
+    // Camera popup in frontend
+    function getCameraUrl() {
+      const input = document.getElementById("cameraUrl");
+      return input ? input.value.trim() : "http://192.168.1.228:8081/video_feed";
+    }
+
+    function startCameraView() {
+      const url = getCameraUrl();
+      if (!url) {
+        alert("请输入摄像头地址，例如 http://192.168.1.228:8081/video_feed");
+        return;
+      }
+
+      const modal = document.getElementById("cameraModal");
+      const img = document.getElementById("cameraModalImg");
+      img.src = url;
+      modal.style.display = "flex";
+    }
+
+    function stopCameraView() {
+      closeCameraPopup();
+    }
+
+    function closeCameraPopup() {
+      const modal = document.getElementById("cameraModal");
+      const img = document.getElementById("cameraModalImg");
+      img.src = "";
+      modal.style.display = "none";
+    }
+
+    function openCameraInNewTab() {
+      const url = getCameraUrl();
+      if (url) window.open(url, "_blank");
+    }
+
+    function toggleCameraFit() {
+      const img = document.getElementById("cameraModalImg");
+      if (!img) return;
+      img.style.objectFit = img.style.objectFit === "contain" ? "cover" : "contain";
+    }
+
+function closeCameraPopup() {
+      const modal = document.getElementById("cameraModal");
+      const img = document.getElementById("cameraModalImg");
+      img.src = "";
+      modal.style.display = "none";
+    }
+
+    function openCameraInNewTab() {
+      const url = getCameraUrl();
+      if (url) window.open(url, "_blank");
+    }
+
+    function toggleCameraFit() {
+      const img = document.getElementById("cameraModalImg");
+      if (!img) return;
+      img.style.objectFit = img.style.objectFit === "contain" ? "cover" : "contain";
+    }
+
+// Chart
+    function initChart() {
+      const ctx = document.getElementById("historyChart").getContext("2d");
+      historyChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            { label: "温度 ℃", data: [], borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.08)", borderWidth: 2, tension: 0.28 },
+            { label: "湿度 %", data: [], borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.08)", borderWidth: 2, tension: 0.28 },
+            { label: "光照", data: [], borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.08)", borderWidth: 2, tension: 0.28 },
+            { label: "烟雾", data: [], borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.08)", borderWidth: 2, tension: 0.28 }
+          ]
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: "#e2e8f0", font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: "#94a3b8", maxTicksLimit: 8 }, grid: { color: "rgba(148,163,184,0.12)" } },
+            y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148,163,184,0.12)" } }
+          }
+        }
+      });
+    }
+
+    function updateChart(history) {
+      if (!historyChart) return;
+      const recent = history.slice(-40);
+      historyChart.data.labels = recent.map(item => (item.timestamp || "").split(" ")[1] || item.timestamp || "");
+      historyChart.data.datasets[0].data = recent.map(item => item.temperature);
+      historyChart.data.datasets[1].data = recent.map(item => item.humidity);
+      historyChart.data.datasets[2].data = recent.map(item => item.light);
+      historyChart.data.datasets[3].data = recent.map(item => item.smoke);
+      historyChart.update();
+    }
+
+    function toggleChart() {
+      document.getElementById("chartPanel").classList.toggle("hidden");
+    }
+
+    function togglePanels() {
+      panelsVisible = !panelsVisible;
+      document.getElementById("leftPanel").classList.toggle("hidden", !panelsVisible);
+      document.getElementById("rightPanel").classList.toggle("hidden", !panelsVisible);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (latestData) updateAllRoomModels(latestData);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const modal = document.getElementById("cameraModal");
+        if (modal && modal.style.display === "flex") closeCameraPopup();
+      }
+    });
+
+
+    initChart();
+    switchRoom("room_a");
+    animate();
+    setTimeout(connectWS, 700);
+  </script>
+</body>
+</html>

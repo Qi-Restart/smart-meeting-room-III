@@ -1,0 +1,7 @@
+websockets
+smbus2
+numpy
+opencv-python
+opencv-contrib-python
+adafruit-blinka
+adafruit-circuitpython-dht
