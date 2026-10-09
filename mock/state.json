@@ -1,0 +1,47 @@
+{
+  "R01": {
+    "timestamp": "2026-10-10T10:30:00+08:00",
+    "room_id": "R01",
+    "occupancy": true,
+    "temperature": 24.6,
+    "humidity": 48.0,
+    "door_status": "closed",
+    "devices": {
+      "light": "on",
+      "projector": "off",
+      "air_conditioner": "auto"
+    },
+    "source": "mock",
+    "quality": "normal"
+  },
+  "R02": {
+    "timestamp": "2026-10-10T10:30:00+08:00",
+    "room_id": "R02",
+    "occupancy": false,
+    "temperature": 23.8,
+    "humidity": 52.0,
+    "door_status": "closed",
+    "devices": {
+      "light": "off",
+      "projector": "off",
+      "air_conditioner": "off"
+    },
+    "source": "mock",
+    "quality": "normal"
+  },
+  "R03": {
+    "timestamp": "2026-10-10T10:30:00+08:00",
+    "room_id": "R03",
+    "occupancy": true,
+    "temperature": 25.2,
+    "humidity": 46.0,
+    "door_status": "open",
+    "devices": {
+      "light": "on",
+      "projector": "on",
+      "air_conditioner": "auto"
+    },
+    "source": "mock",
+    "quality": "normal"
+  }
+}
