@@ -5,3 +5,5 @@ opencv-python
 opencv-contrib-python
 adafruit-blinka
 adafruit-circuitpython-dht
+pandas
+matplotlib
