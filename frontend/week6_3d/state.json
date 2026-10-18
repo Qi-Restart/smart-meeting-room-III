@@ -1,0 +1,7 @@
+{
+  "face_status": "recognized",
+  "person_id": "person_01",
+  "door_status": "open",
+  "light_status": "on",
+  "air_conditioner_status": "on"
+}
