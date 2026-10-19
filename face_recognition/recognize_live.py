@@ -67,7 +67,7 @@ STATE_FILE = (
 # 识别参数
 # ============================================================
 
-RECOGNITION_THRESHOLD = 30.0
+RECOGNITION_THRESHOLD = 50.0
 
 CONFIRM_FRAMES = 10
 
